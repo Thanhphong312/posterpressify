@@ -35,8 +35,15 @@ class LabelPrinter {
      * Direct print using hidden iframe (no UI)
      */
     printDirect(orderId) {
-        // Show loading indicator
-        this.showPrintLoading(orderId);
+        console.log('printDirect called for order:', orderId);
+        
+        // Button loading is handled in printLabel function
+        
+        // Show loading indicator immediately (optional - can be disabled)
+        // this.showPrintLoading(orderId);
+        
+        // Track when loading started to ensure minimum display time
+        const loadingStartTime = Date.now();
         
         // Log print action to timeline
         fetch('/log-print.php', {
@@ -47,41 +54,59 @@ class LabelPrinter {
             body: 'order_id=' + orderId
         }).catch(err => console.log('Could not log print:', err));
         
-        const frameId = 'printFrame_' + Date.now();
-        const iframe = document.createElement('iframe');
-        iframe.id = frameId;
-        iframe.style.cssText = 'position:absolute;width:0;height:0;border:0;left:-9999px;';
-        
-        // Use the once-only print version
-        iframe.src = `/print-label-once.php?order=${orderId}`;
-        
-        document.body.appendChild(iframe);
-        
-        // Set up cleanup
-        const cleanup = () => {
-            setTimeout(() => {
-                const frame = document.getElementById(frameId);
-                if (frame) {
-                    document.body.removeChild(frame);
-                }
-            }, 5000); // Give more time for printing
-        };
-        
-        // Don't try to print from parent - let iframe handle it
-        iframe.onload = () => {
-            // Hide loading indicator after a short delay
-            setTimeout(() => {
-                this.hidePrintLoading();
-            }, 1500);
-            // Just cleanup after a delay
-            cleanup();
-        };
-        
-        iframe.onerror = () => {
-            this.hidePrintLoading();
-            this.showError('Failed to load label');
-            cleanup();
-        };
+        // Create iframe after a tiny delay to ensure loading indicator is visible
+        setTimeout(() => {
+            const frameId = 'printFrame_' + Date.now();
+            const iframe = document.createElement('iframe');
+            iframe.id = frameId;
+            iframe.style.cssText = 'position:absolute;width:0;height:0;border:0;left:-9999px;';
+            
+            // Use the once-only print version
+            iframe.src = `/print-label-once.php?order=${orderId}`;
+            
+            document.body.appendChild(iframe);
+            
+            // Set up cleanup
+            const cleanup = () => {
+                setTimeout(() => {
+                    const frame = document.getElementById(frameId);
+                    if (frame) {
+                        document.body.removeChild(frame);
+                    }
+                }, 5000); // Give more time for printing
+            };
+            
+            // Don't try to print from parent - let iframe handle it
+            const self = this; // Store reference to this
+            iframe.onload = () => {
+                console.log('Print iframe loaded, keeping loading indicator visible for 2 seconds');
+                // Calculate remaining time to ensure 2 seconds minimum display
+                const elapsedTime = Date.now() - loadingStartTime;
+                const remainingTime = Math.max(2000 - elapsedTime, 0);
+                
+                // Keep loading indicator visible for at least 2 seconds total
+                setTimeout(() => {
+                    // self.hidePrintLoading();
+                    // Button update is handled in printLabel function
+                }, remainingTime);
+                
+                // Just cleanup after a delay
+                cleanup();
+            };
+            
+            iframe.onerror = () => {
+                // Ensure 2 seconds minimum display even on error
+                const elapsedTime = Date.now() - loadingStartTime;
+                const remainingTime = Math.max(2000 - elapsedTime, 0);
+                
+                setTimeout(() => {
+                    // self.hidePrintLoading();
+                    // Button update is handled in printLabel function
+                    self.showError('Failed to load label');
+                }, remainingTime);
+                cleanup();
+            };
+        }, 50); // Small delay to ensure loading indicator renders first
     }
 
     /**
@@ -202,9 +227,119 @@ class LabelPrinter {
     }
 
     /**
+     * Update print button state
+     */
+    updatePrintButton(orderId, state) {
+        // Ensure orderId is a string
+        orderId = String(orderId);
+        console.log('updatePrintButton called:', orderId, state);
+        
+        // Find all print buttons for this order - handle both numeric and string order IDs
+        const selectors = [
+            `.print-btn[data-order-id="${orderId}"]`,
+            `button[onclick*="printLabel('${orderId}')"]`,
+            `button[onclick*="printLabel(${orderId})"]`,
+            `button[onclick*="'${orderId}'"]`
+        ];
+        
+        const buttons = document.querySelectorAll(selectors.join(', '));
+        
+        console.log('Found buttons:', buttons.length, 'with selectors:', selectors);
+        
+        buttons.forEach(button => {
+            const originalText = button.getAttribute('data-original-text') || button.textContent.trim();
+            
+            if (state === 'loading') {
+                console.log('Setting button to loading state');
+                // Store original text
+                button.setAttribute('data-original-text', originalText);
+                button.disabled = true;
+                button.innerHTML = `
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="
+                            width: 14px;
+                            height: 14px;
+                            border: 2px solid #ffffff;
+                            border-top-color: transparent;
+                            border-radius: 50%;
+                            display: inline-block;
+                            animation: spin 0.8s linear infinite;
+                        "></span>
+                        Loading Print...
+                    </span>
+                `;
+                // Add loading class
+                button.classList.add('btn-loading');
+                
+                // Add animation style if not exists
+                if (!document.getElementById('btnLoadingStyles')) {
+                    const style = document.createElement('style');
+                    style.id = 'btnLoadingStyles';
+                    style.textContent = `
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                        .btn-loading {
+                            background: #17a2b8 !important;
+                            cursor: wait !important;
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        .btn-loading::after {
+                            content: '';
+                            position: absolute;
+                            top: 0;
+                            left: -100%;
+                            width: 100%;
+                            height: 100%;
+                            background: linear-gradient(
+                                90deg, 
+                                transparent, 
+                                rgba(255, 255, 255, 0.2), 
+                                transparent
+                            );
+                            animation: shimmer 1.5s infinite;
+                        }
+                        @keyframes shimmer {
+                            0% { left: -100%; }
+                            100% { left: 100%; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            } else if (state === 'complete') {
+                button.disabled = false;
+                button.innerHTML = `✓ ${originalText}`;
+                button.classList.remove('btn-loading');
+                button.classList.add('btn-printed');
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('btn-printed');
+                }, 3000);
+            } else if (state === 'error') {
+                button.disabled = false;
+                button.innerHTML = `⚠️ ${originalText}`;
+                button.classList.remove('btn-loading');
+                button.classList.add('btn-error');
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('btn-error');
+                }, 3000);
+            }
+        });
+    }
+    
+    /**
      * Show print loading indicator
      */
     showPrintLoading(orderId) {
+        console.log('Showing print loading for order:', orderId);
+        
         // Remove any existing loading indicator
         this.hidePrintLoading();
         
@@ -221,7 +356,7 @@ class LabelPrinter {
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10000;
+            z-index: 99999;
             animation: fadeIn 0.2s ease;
         `;
         
@@ -234,6 +369,8 @@ class LabelPrinter {
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             text-align: center;
             animation: scaleIn 0.3s ease;
+            z-index: 100000;
+            position: relative;
         `;
         
         loadingContent.innerHTML = `
@@ -261,6 +398,11 @@ class LabelPrinter {
         
         loadingOverlay.appendChild(loadingContent);
         document.body.appendChild(loadingOverlay);
+        
+        // Force browser to repaint
+        loadingOverlay.offsetHeight;
+        
+        console.log('Print loading overlay added to page');
         
         // Add animation styles if not already present
         if (!document.getElementById('printLoadingStyles')) {
@@ -300,12 +442,14 @@ class LabelPrinter {
      * Hide print loading indicator
      */
     hidePrintLoading() {
+        console.log('Hiding print loading indicator');
         const loadingOverlay = document.getElementById('printLoadingOverlay');
         if (loadingOverlay) {
             loadingOverlay.style.animation = 'fadeOut 0.2s ease';
             setTimeout(() => {
                 if (loadingOverlay && loadingOverlay.parentNode) {
                     loadingOverlay.parentNode.removeChild(loadingOverlay);
+                    console.log('Print loading indicator removed');
                 }
             }, 200);
         }
@@ -349,7 +493,89 @@ const labelPrinter = new LabelPrinter({
 
 // Global function for backward compatibility
 function printLabel(orderId) {
-    labelPrinter.print(orderId);
+    console.log('printLabel called with orderId:', orderId, 'type:', typeof orderId);
+    
+    // Directly update any print button being clicked
+    if (event && event.target) {
+        const button = event.target.closest('button');
+        if (button && button.textContent.includes('Print')) {
+            updatePrintButtonDirect(button, 'loading');
+            
+            // Reset after 2 seconds
+            setTimeout(() => {
+                updatePrintButtonDirect(button, 'complete');
+            }, 2000);
+        }
+    }
+    
+    // Also try to find buttons by order ID
+    updateAllPrintButtons(orderId, 'loading');
+    setTimeout(() => {
+        updateAllPrintButtons(orderId, 'complete');
+    }, 2000);
+    
+    // Ensure orderId is a string
+    labelPrinter.print(String(orderId));
+}
+
+// Direct button update function
+function updatePrintButtonDirect(button, state) {
+    if (!button) return;
+    
+    const originalText = button.getAttribute('data-original-text') || button.textContent.trim();
+    
+    if (state === 'loading') {
+        button.setAttribute('data-original-text', originalText);
+        button.disabled = true;
+        button.innerHTML = `
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="
+                    width: 14px;
+                    height: 14px;
+                    border: 2px solid #ffffff;
+                    border-top-color: transparent;
+                    border-radius: 50%;
+                    display: inline-block;
+                    animation: spin 0.8s linear infinite;
+                "></span>
+                Loading Print...
+            </span>
+        `;
+        
+        // Add style if needed
+        if (!document.getElementById('btnSpinStyle')) {
+            const style = document.createElement('style');
+            style.id = 'btnSpinStyle';
+            style.textContent = `
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    } else if (state === 'complete') {
+        button.disabled = false;
+        button.innerHTML = '✓ ' + originalText;
+        
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 1500);
+    }
+}
+
+// Update all print buttons for an order
+function updateAllPrintButtons(orderId, state) {
+    const buttons = document.querySelectorAll(
+        `.print-btn[data-order-id="${orderId}"], 
+         button[onclick*="printLabel"]`
+    );
+    
+    buttons.forEach(button => {
+        if (button.textContent.includes('Print')) {
+            updatePrintButtonDirect(button, state);
+        }
+    });
 }
 
 // Alternative functions for different modes

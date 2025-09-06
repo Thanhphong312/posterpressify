@@ -160,7 +160,8 @@ class TimelineController {
             'payment received' => ['icon' => '💰', 'label' => 'Payment Received'],
             'delivered' => ['icon' => '✅', 'label' => 'Delivered'],
             'returned' => ['icon' => '↩️', 'label' => 'Returned'],
-            'processing' => ['icon' => '⚙️', 'label' => 'Processing']
+            'processing' => ['icon' => '⚙️', 'label' => 'Processing'],
+            'return_to_support' => ['icon' => '⚠️', 'label' => 'Returned to Support']
         ];
         
         return $actionMap[$action] ?? ['icon' => '📋', 'label' => ucfirst(str_replace('_', ' ', $action))];

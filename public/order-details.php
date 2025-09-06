@@ -237,6 +237,11 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
                         Mark as Shipped
                     </button>
                 <?php endif; ?>
+                <?php if ($order['fulfill_status'] !== 'return_to_support'): ?>
+                    <button onclick="returnToSupport('<?php echo $order['id']; ?>')" class="btn btn-warning">
+                        Return to Support
+                    </button>
+                <?php endif; ?>
                 <?php if (!empty($order['shipping_label'])): ?>
                     <button onclick="printLabel('<?php echo $order['id']; ?>')" class="btn btn-primary">
                         Print Label
@@ -254,6 +259,64 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
     if (typeof labelPrinter !== 'undefined') {
         labelPrinter.options.mode = 'direct';
         labelPrinter.options.autoprint = true;
+    }
+    
+    // Return order to support
+    function returnToSupport(orderId) {
+        // Update button to show loading
+        const button = event.target;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Processing...';
+        
+        // Send AJAX request
+        fetch('/update-order-status.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'order_id=' + orderId + '&status=return_to_support'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Hide button
+                button.style.display = 'none';
+                
+                // Update status badge
+                const statusBadge = document.querySelector('.order-status');
+                if (statusBadge) {
+                    statusBadge.className = 'order-status status-return-support';
+                    statusBadge.textContent = 'Return to Support';
+                }
+                
+                // Hide ship button if exists
+                const shipBtn = document.querySelector('.btn-success');
+                if (shipBtn && shipBtn.textContent.includes('Ship')) {
+                    shipBtn.style.display = 'none';
+                }
+                
+                // Show success message
+                showNotification('Order #' + orderId + ' returned to support!', 'warning');
+                
+                // Reload page after 2 seconds to update timeline
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                // Restore button on error
+                button.disabled = false;
+                button.textContent = originalText;
+                alert('Error: ' + (data.message || 'Failed to update order'));
+            }
+        })
+        .catch(error => {
+            // Restore button on error
+            button.disabled = false;
+            button.textContent = originalText;
+            console.error('Error:', error);
+            alert('Network error. Please try again.');
+        });
     }
     
     // Ship order and auto-print label
@@ -289,6 +352,12 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
                 
                 // Auto-print label after successful ship
                 if (data.has_label) {
+                    // Show loading on print button immediately
+                    const printBtn = document.querySelector('button[onclick*="printLabel"]');
+                    if (printBtn) {
+                        printBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                    
                     setTimeout(() => {
                         console.log('Auto-printing label for order ' + orderId);
                         printLabel(orderId);
@@ -326,8 +395,8 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
             position: fixed;
             top: 20px;
             right: 20px;
-            background: ${type === 'success' ? '#28a745' : type === 'info' ? '#17a2b8' : '#0066ff'};
-            color: white;
+            background: ${type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : type === 'info' ? '#17a2b8' : '#0066ff'};
+            color: ${type === 'warning' ? '#000' : 'white'};
             padding: 15px 25px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -363,6 +432,19 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
         }
         .btn-success:hover {
             background: #218838;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+            border: 1px solid #ffc107;
+        }
+        .btn-warning:hover {
+            background: #e0a800;
+            border-color: #e0a800;
+        }
+        .status-return-support {
+            background: #ffc107;
+            color: #000;
         }
         
         /* Timeline styles */

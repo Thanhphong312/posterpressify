@@ -244,6 +244,11 @@ if (!empty($searchTerm)) {
                                                 </button>
                                             <?php endif; ?>
                                         <?php endif; ?>
+                                        <?php if ($order['fulfill_status'] !== 'return_to_support'): ?>
+                                            <button class="return-support-btn btn btn-sm btn-warning" data-order-id="<?php echo $order['id']; ?>">
+                                                Return to Support
+                                            </button>
+                                        <?php endif; ?>
                                         <?php if (!empty($order['shipping_label'])): ?>
                                             <button class="print-btn btn btn-sm btn-primary" data-order-id="<?php echo $order['id']; ?>">
                                                 Print Label
@@ -282,6 +287,14 @@ if (!empty($searchTerm)) {
             });
         });
         
+        // Add event listeners for return to support buttons
+        document.querySelectorAll('.return-support-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const orderId = this.getAttribute('data-order-id');
+                returnToSupport(orderId, this);
+            });
+        });
+        
         // Add event listeners for print buttons
         document.querySelectorAll('.print-btn').forEach(button => {
             button.addEventListener('click', function() {
@@ -290,6 +303,64 @@ if (!empty($searchTerm)) {
             });
         });
     });
+    
+    // Return order to support
+    function returnToSupport(orderId, buttonElement = null) {
+        // Update button to show loading
+        const button = buttonElement || event.target;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Processing...';
+        
+        // Send AJAX request
+        fetch('/update-order-status.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'order_id=' + orderId + '&status=return_to_support'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update button
+                button.textContent = 'Returned ✓';
+                button.className = 'btn btn-sm btn-outline';
+                button.disabled = true;
+                
+                // Update status badge
+                const card = button.closest('.order-card');
+                if (card) {
+                    const statusBadge = card.querySelector('.order-status');
+                    if (statusBadge) {
+                        statusBadge.className = 'order-status status-return-support';
+                        statusBadge.textContent = 'Return to Support';
+                    }
+                    
+                    // Hide ship button if exists
+                    const shipBtn = card.querySelector('.ship-btn');
+                    if (shipBtn) {
+                        shipBtn.style.display = 'none';
+                    }
+                }
+                
+                // Show success message
+                showNotification('Order #' + orderId + ' returned to support!', 'warning');
+            } else {
+                // Restore button on error
+                button.disabled = false;
+                button.textContent = originalText;
+                alert('Error: ' + (data.message || 'Failed to update order'));
+            }
+        })
+        .catch(error => {
+            // Restore button on error
+            button.disabled = false;
+            button.textContent = originalText;
+            console.error('Error:', error);
+            alert('Network error. Please try again.');
+        });
+    }
     
     // Ship order and auto-print label
     function shipOrder(orderId, buttonElement = null) {
@@ -329,6 +400,12 @@ if (!empty($searchTerm)) {
                 
                 // Auto-print label after successful ship
                 if (data.has_label) {
+                    // Show loading on print button immediately
+                    const printBtn = card.querySelector('.print-btn');
+                    if (printBtn) {
+                        printBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                    
                     setTimeout(() => {
                         console.log('Auto-printing label for order ' + orderId);
                         printLabel(orderId);
@@ -360,8 +437,8 @@ if (!empty($searchTerm)) {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: ${type === 'success' ? '#28a745' : '#0066ff'};
-            color: white;
+            background: ${type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#0066ff'};
+            color: ${type === 'warning' ? '#000' : 'white'};
             padding: 12px 20px;
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -387,6 +464,19 @@ if (!empty($searchTerm)) {
             color: #6c757d !important;
             cursor: not-allowed !important;
             opacity: 0.6;
+        }
+        .btn-warning {
+            background: #ffc107 !important;
+            color: #000 !important;
+            border: 1px solid #ffc107 !important;
+        }
+        .btn-warning:hover {
+            background: #e0a800 !important;
+            border-color: #e0a800 !important;
+        }
+        .status-return-support {
+            background: #ffc107 !important;
+            color: #000 !important;
         }
         .order-full-details {
             margin-top: 20px;

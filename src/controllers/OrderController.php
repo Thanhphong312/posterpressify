@@ -198,9 +198,10 @@ class OrderController {
             'fulfilled' => ['label' => 'Fulfilled', 'class' => 'status-fulfilled'],
             'shipped' => ['label' => 'Shipped', 'class' => 'status-shipped'],
             'delivered' => ['label' => 'Delivered', 'class' => 'status-delivered'],
-            'cancelled' => ['label' => 'Cancelled', 'class' => 'status-cancelled']
+            'cancelled' => ['label' => 'Cancelled', 'class' => 'status-cancelled'],
+            'return_to_support' => ['label' => 'Return to Support', 'class' => 'status-return-support']
         ];
         
-        return $statusMap[$status] ?? ['label' => ucfirst($status), 'class' => 'status-default'];
+        return $statusMap[$status] ?? ['label' => ucfirst(str_replace('_', ' ', $status)), 'class' => 'status-default'];
     }
 }
