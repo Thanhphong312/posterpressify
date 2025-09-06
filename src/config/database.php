@@ -1,21 +1,39 @@
 <?php
+require_once __DIR__ . '/env.php';
+
 class Database {
     private static $instance = null;
     private $connection;
     
-    private $host = '45.79.0.186';
-    private $username = 'duytan';
-    private $password = 'tandb';
-    private $database = 'posterpressify'; // Update this with actual database name
+    private $host;
+    private $port;
+    private $username;
+    private $password;
+    private $database;
     
     private function __construct() {
+        // Load environment variables
+        Env::load();
+        
+        // Get database configuration from .env file
+        $this->host = Env::get('DB_HOST', 'localhost');
+        $this->port = Env::get('DB_PORT', 3306);
+        $this->database = Env::get('DB_DATABASE', 'pressify');
+        $this->username = Env::get('DB_USERNAME', 'root');
+        $this->password = Env::get('DB_PASSWORD', '');
+        
         try {
-            $dsn = "mysql:host={$this->host};dbname={$this->database};charset=utf8mb4";
+            $dsn = "mysql:host={$this->host};port={$this->port};dbname={$this->database};charset=utf8mb4";
             $this->connection = new PDO($dsn, $this->username, $this->password);
             $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->connection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            die("Connection failed: " . $e->getMessage());
+            // Check if in debug mode
+            if (Env::get('APP_DEBUG', false)) {
+                die("Connection failed: " . $e->getMessage());
+            } else {
+                die("Database connection error. Please contact administrator.");
+            }
         }
     }
     

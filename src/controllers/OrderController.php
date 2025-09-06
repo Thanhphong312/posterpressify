@@ -1,11 +1,33 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/env.php';
 
 class OrderController {
     private $db;
+    private $enableTestOrder;
     
     public function __construct() {
         $this->db = Database::getInstance();
+        // Check if test orders are enabled
+        $this->enableTestOrder = filter_var(Env::get('ENABLE_TEST_ORDER', 'false'), FILTER_VALIDATE_BOOLEAN);
+    }
+    
+    /**
+     * Check if an order is a test order
+     */
+    public function isTestOrder($order) {
+        // Check if ref_id or order_stt contains 'test'
+        return (
+            (isset($order['ref_id']) && stripos($order['ref_id'], 'test') !== false) ||
+            (isset($order['order_stt']) && stripos($order['order_stt'], 'test') !== false)
+        );
+    }
+    
+    /**
+     * Check if test orders are enabled
+     */
+    public function isTestOrderEnabled() {
+        return $this->enableTestOrder;
     }
     
     public function searchOrders($searchTerm, $userId = null) {
@@ -26,6 +48,12 @@ class OrderController {
                     $params[] = $userId;
                 }
                 
+                // Filter out test orders if disabled
+                if (!$this->enableTestOrder) {
+                    $sql .= " AND (o.ref_id NOT LIKE '%test%' OR o.ref_id IS NULL)";
+                    $sql .= " AND (o.order_stt NOT LIKE '%test%' OR o.order_stt IS NULL)";
+                }
+                
                 $sql .= " GROUP BY o.id";
             } else {
                 $sql = "SELECT o.*, 
@@ -41,12 +69,30 @@ class OrderController {
                     $params[] = $userId;
                 }
                 
+                // Filter out test orders if disabled
+                if (!$this->enableTestOrder) {
+                    $sql .= " AND (o.ref_id NOT LIKE '%test%' OR o.ref_id IS NULL)";
+                    $sql .= " AND (o.order_stt NOT LIKE '%test%' OR o.order_stt IS NULL)";
+                }
+                
                 $sql .= " GROUP BY o.id ORDER BY o.created_at DESC LIMIT 50";
             }
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             $orders = $stmt->fetchAll();
+            
+            // Get items for each order
+            foreach ($orders as &$order) {
+                $itemSql = "SELECT oi.*, 
+                           pv.style, pv.color, pv.size
+                           FROM order_items oi
+                           LEFT JOIN product_variants pv ON oi.variant_id = pv.variant_id
+                           WHERE oi.order_id = ?";
+                $itemStmt = $this->db->prepare($itemSql);
+                $itemStmt->execute([$order['id']]);
+                $order['items'] = $itemStmt->fetchAll();
+            }
             
             return $orders;
         } catch (Exception $e) {
@@ -94,14 +140,28 @@ class OrderController {
         try {
             $sql = "SELECT o.*, 
                     CONCAT(o.first_name, ' ', o.last_name) as customer_name,
-                    COUNT(oi.id) as item_count
+                    COUNT(oi.id) as item_count,
+                    GROUP_CONCAT(DISTINCT oi.product_name SEPARATOR ', ') as product_names,
+                    GROUP_CONCAT(DISTINCT oi.sku SEPARATOR ', ') as product_skus
                     FROM orders o
                     LEFT JOIN order_items oi ON o.id = oi.order_id";
             
             $params = [];
+            $whereConditions = [];
+            
             if ($userId) {
-                $sql .= " WHERE o.seller_id = ?";
+                $whereConditions[] = "o.seller_id = ?";
                 $params[] = $userId;
+            }
+            
+            // Filter out test orders if disabled
+            if (!$this->enableTestOrder) {
+                $whereConditions[] = "(o.ref_id NOT LIKE '%test%' OR o.ref_id IS NULL)";
+                $whereConditions[] = "(o.order_stt NOT LIKE '%test%' OR o.order_stt IS NULL)";
+            }
+            
+            if (!empty($whereConditions)) {
+                $sql .= " WHERE " . implode(' AND ', $whereConditions);
             }
             
             $sql .= " GROUP BY o.id ORDER BY o.created_at DESC LIMIT ?";
@@ -110,7 +170,21 @@ class OrderController {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             
-            return $stmt->fetchAll();
+            $orders = $stmt->fetchAll();
+            
+            // Get items for each order
+            foreach ($orders as &$order) {
+                $itemSql = "SELECT oi.*, 
+                           pv.style, pv.color, pv.size
+                           FROM order_items oi
+                           LEFT JOIN product_variants pv ON oi.variant_id = pv.variant_id
+                           WHERE oi.order_id = ?";
+                $itemStmt = $this->db->prepare($itemSql);
+                $itemStmt->execute([$order['id']]);
+                $order['items'] = $itemStmt->fetchAll();
+            }
+            
+            return $orders;
         } catch (Exception $e) {
             error_log("Recent orders error: " . $e->getMessage());
             return [];

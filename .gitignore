@@ -1,0 +1,38 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Cache directories
+/cache/
+/public/cache/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+/logs/
+
+# Vendor directory (if using Composer later)
+/vendor/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Database dumps
+*.sql
+*.sql.gz
+
+# Uploaded files
+/uploads/
+/public/uploads/
+
+# Session files
+/sessions/

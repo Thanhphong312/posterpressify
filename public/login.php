@@ -30,14 +30,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - POD Order Manager</title>
+    <title>Login - Pressify Poster</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <h1>POD Order Manager</h1>
+                <h1>Pressify Poster</h1>
                 <p>Sign in to your account</p>
             </div>
             
