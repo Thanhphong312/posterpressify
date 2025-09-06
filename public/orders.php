@@ -250,9 +250,15 @@ if (!empty($searchTerm)) {
                                             </button>
                                         <?php endif; ?>
                                         <?php if (!empty($order['shipping_label'])): ?>
-                                            <button class="print-btn btn btn-sm btn-primary" data-order-id="<?php echo $order['id']; ?>">
-                                                Print Label
-                                            </button>
+                                            <?php if ($order['fulfill_status'] === 'shipped'): ?>
+                                                <button class="print-btn btn btn-sm btn-primary" data-order-id="<?php echo $order['id']; ?>">
+                                                    Print Label
+                                                </button>
+                                            <?php else: ?>
+                                                <button class="btn btn-sm btn-disabled" disabled title="Ship order first to enable printing">
+                                                    Print Label
+                                                </button>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -400,8 +406,20 @@ if (!empty($searchTerm)) {
                 
                 // Auto-print label after successful ship
                 if (data.has_label) {
-                    // Show loading on print button immediately
-                    const printBtn = card.querySelector('.print-btn');
+                    // Enable the disabled print button
+                    const disabledPrintBtn = card.querySelector('.btn-disabled:disabled');
+                    let printBtn = card.querySelector('.print-btn');
+                    
+                    if (disabledPrintBtn && disabledPrintBtn.textContent.includes('Print')) {
+                        // Convert disabled button to enabled print button
+                        disabledPrintBtn.disabled = false;
+                        disabledPrintBtn.className = 'print-btn btn btn-sm btn-primary';
+                        disabledPrintBtn.setAttribute('data-order-id', orderId);
+                        disabledPrintBtn.title = '';
+                        disabledPrintBtn.onclick = () => printLabel(orderId);
+                        printBtn = disabledPrintBtn;
+                    }
+                    
                     if (printBtn) {
                         printBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     }

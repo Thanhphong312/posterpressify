@@ -243,9 +243,15 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
                     </button>
                 <?php endif; ?>
                 <?php if (!empty($order['shipping_label'])): ?>
-                    <button onclick="printLabel('<?php echo $order['id']; ?>')" class="btn btn-primary">
-                        Print Label
-                    </button>
+                    <?php if ($order['fulfill_status'] === 'shipped'): ?>
+                        <button onclick="printLabel('<?php echo $order['id']; ?>')" class="btn btn-primary">
+                            Print Label
+                        </button>
+                    <?php else: ?>
+                        <button class="btn btn-disabled" disabled title="Ship order first to enable printing">
+                            Print Label
+                        </button>
+                    <?php endif; ?>
                 <?php endif; ?>
                 <a href="/orders.php" class="btn btn-outline">Back to Orders</a>
             </div>
@@ -352,8 +358,19 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
                 
                 // Auto-print label after successful ship
                 if (data.has_label) {
-                    // Show loading on print button immediately
-                    const printBtn = document.querySelector('button[onclick*="printLabel"]');
+                    // Enable the disabled print button
+                    const disabledPrintBtn = document.querySelector('.btn-disabled:disabled');
+                    let printBtn = document.querySelector('button[onclick*="printLabel"]');
+                    
+                    if (disabledPrintBtn && disabledPrintBtn.textContent.includes('Print')) {
+                        // Convert disabled button to enabled print button
+                        disabledPrintBtn.disabled = false;
+                        disabledPrintBtn.className = 'btn btn-primary';
+                        disabledPrintBtn.title = '';
+                        disabledPrintBtn.onclick = () => printLabel(orderId);
+                        printBtn = disabledPrintBtn;
+                    }
+                    
                     if (printBtn) {
                         printBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     }
