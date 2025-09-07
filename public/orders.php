@@ -245,7 +245,7 @@ if (!empty($searchTerm)) {
                                                 </button>
                                             <?php endif; ?>
                                         <?php endif; ?>
-                                        <?php if ($order['fulfill_status'] !== 'return_to_support'): ?>
+                                        <?php if ($order['fulfill_status'] !== 'return_to_support' && $order['fulfill_status'] !== 'shipped'): ?>
                                             <button class="return-support-btn btn btn-sm btn-warning" data-order-id="<?php echo $order['id']; ?>">
                                                 Return to Support
                                             </button>
@@ -348,6 +348,14 @@ if (!empty($searchTerm)) {
                     const shipBtn = card.querySelector('.ship-btn');
                     if (shipBtn) {
                         shipBtn.style.display = 'none';
+                    }
+                    
+                    // Disable print button if exists
+                    const printBtn = card.querySelector('.print-btn');
+                    if (printBtn) {
+                        printBtn.disabled = true;
+                        printBtn.className = 'btn btn-sm btn-disabled';
+                        printBtn.title = 'Cannot print label for returned orders';
                     }
                 }
                 

@@ -40,7 +40,12 @@ class OrderController {
                         COUNT(oi.id) as item_count
                         FROM orders o
                         LEFT JOIN order_items oi ON o.id = oi.order_id
-                        WHERE o.id = ?";
+                        WHERE o.id = ?
+                        AND EXISTS (
+                            SELECT 1 FROM order_items oi2
+                            LEFT JOIN product_variants pv2 ON oi2.variant_id = pv2.variant_id
+                            WHERE oi2.order_id = o.id AND pv2.style = 'Poster'
+                        )";
                 $params = [$searchTerm];
                 
                 if ($userId) {
@@ -61,7 +66,12 @@ class OrderController {
                         COUNT(oi.id) as item_count
                         FROM orders o
                         LEFT JOIN order_items oi ON o.id = oi.order_id
-                        WHERE o.ref_id LIKE ?";
+                        WHERE o.ref_id LIKE ?
+                        AND EXISTS (
+                            SELECT 1 FROM order_items oi2
+                            LEFT JOIN product_variants pv2 ON oi2.variant_id = pv2.variant_id
+                            WHERE oi2.order_id = o.id AND pv2.style = 'Poster'
+                        )";
                 $params = ['%' . $searchTerm . '%'];
                 
                 if ($userId) {
@@ -148,6 +158,13 @@ class OrderController {
             
             $params = [];
             $whereConditions = [];
+            
+            // Filter only orders with Poster style items
+            $whereConditions[] = "EXISTS (
+                SELECT 1 FROM order_items oi2
+                LEFT JOIN product_variants pv2 ON oi2.variant_id = pv2.variant_id
+                WHERE oi2.order_id = o.id AND pv2.style = 'Poster'
+            )";
             
             if ($userId) {
                 $whereConditions[] = "o.seller_id = ?";

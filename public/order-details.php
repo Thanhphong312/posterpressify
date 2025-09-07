@@ -231,7 +231,7 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
                         Mark as Shipped
                     </button>
                 <?php endif; ?>
-                <?php if ($order['fulfill_status'] !== 'return_to_support'): ?>
+                <?php if ($order['fulfill_status'] !== 'return_to_support' && $order['fulfill_status'] !== 'shipped'): ?>
                     <button onclick="returnToSupport('<?php echo $order['id']; ?>')" class="btn btn-warning">
                         Return to Support
                     </button>
