@@ -138,10 +138,6 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
                             <span>$<?php echo number_format($order['shipping_cost'] ?? 0, 2); ?></span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">Total Cost:</span>
-                            <span><strong>$<?php echo number_format($order['total_cost'] ?? 0, 2); ?></strong></span>
-                        </div>
-                        <div class="detail-row">
                             <span class="detail-label">Payment Status:</span>
                             <span><?php echo ucfirst($order['payment_status'] ?? 'pending'); ?></span>
                         </div>
@@ -162,7 +158,6 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
                                     <th>SKU</th>
                                     <th>Quantity</th>
                                     <th>Price</th>
-                                    <th>Subtotal</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -190,7 +185,6 @@ $statusInfo = $orderController->formatOrderStatus($order['fulfill_status'] ?? 'p
                                         <td><?php echo htmlspecialchars($item['sku'] ?? 'N/A'); ?></td>
                                         <td><?php echo $item['quantity'] ?? 1; ?></td>
                                         <td>$<?php echo number_format($item['price'] ?? 0, 2); ?></td>
-                                        <td>$<?php echo number_format(($item['price'] ?? 0) * ($item['quantity'] ?? 1), 2); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>

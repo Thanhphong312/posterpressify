@@ -138,16 +138,10 @@ if (!empty($searchTerm)) {
                                                                 <th class="th-size">Size</th>
                                                                 <th class="th-qty">Qty</th>
                                                                 <th class="th-price">Price</th>
-                                                                <th class="th-total">Total</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            <?php 
-                                                            $orderTotal = 0;
-                                                            foreach ($order['items'] as $item): 
-                                                                $itemTotal = ($item['price'] ?? 0) * ($item['quantity'] ?? 1);
-                                                                $orderTotal += $itemTotal;
-                                                            ?>
+                                                            <?php foreach ($order['items'] as $item): ?>
                                                                 <tr class="item-row">
                                                                     <td class="td-mockup">
                                                                         <?php if (!empty($item['mockup'])): ?>
@@ -173,14 +167,21 @@ if (!empty($searchTerm)) {
                                                                     <td class="td-size"><?php echo htmlspecialchars($item['size'] ?? '-'); ?></td>
                                                                     <td class="td-qty"><?php echo $item['quantity'] ?? 1; ?></td>
                                                                     <td class="td-price">$<?php echo number_format($item['price'] ?? 0, 2); ?></td>
-                                                                    <td class="td-total"><strong>$<?php echo number_format($itemTotal, 2); ?></strong></td>
                                                                 </tr>
                                                             <?php endforeach; ?>
                                                         </tbody>
                                                         <tfoot>
                                                             <tr class="total-row">
-                                                                <td colspan="8" class="text-right">Subtotal:</td>
-                                                                <td class="order-total"><strong>$<?php echo number_format($orderTotal, 2); ?></strong></td>
+                                                                <td colspan="7" class="text-right">Print Cost:</td>
+                                                                <td class="order-total">$<?php echo number_format($order['print_cost'] ?? 0, 2); ?></td>
+                                                            </tr>
+                                                            <tr class="total-row">
+                                                                <td colspan="7" class="text-right">Shipping Cost:</td>
+                                                                <td class="order-total">$<?php echo number_format($order['shipping_cost'] ?? 0, 2); ?></td>
+                                                            </tr>
+                                                            <tr class="total-row">
+                                                                <td colspan="7" class="text-right">Total Cost:</td>
+                                                                <td class="order-total"><strong>$<?php echo number_format($order['total_cost'] ?? 0, 2); ?></strong></td>
                                                             </tr>
                                                         </tfoot>
                                                     </table>
