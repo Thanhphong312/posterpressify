@@ -202,15 +202,15 @@ if (!empty($searchTerm)) {
                                                 <h4 class="items-title">📦 Item Information</h4>
                                                 <?php foreach ($order['items'] as $item): ?>
                                                 <div class="item-card" style="display: flex; gap: 25px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; margin-bottom: 15px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                                    <!-- Mockup Image - Larger -->
+                                                    <!-- Mockup Image - Extra Large -->
                                                     <div class="item-mockup" style="flex-shrink: 0;">
                                                         <?php if (!empty($item['mockup'])): ?>
                                                             <img src="<?php echo htmlspecialchars($item['mockup']); ?>" 
-                                                                 style="width: 160px; height: 160px; object-fit: cover; border-radius: 10px; border: 2px solid #e0e0e0; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
+                                                                 style="width: 220px; height: 220px; object-fit: cover; border-radius: 12px; border: 2px solid #e0e0e0; box-shadow: 0 6px 12px rgba(0,0,0,0.15);"
                                                                  alt="Product Mockup"
-                                                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'width: 160px; height: 160px; background: #f0f0f0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px;\'>No Image</div>';">
+                                                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'width: 220px; height: 220px; background: #f0f0f0; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 16px;\'>No Image</div>';">
                                                         <?php else: ?>
-                                                            <div style="width: 160px; height: 160px; background: #f0f0f0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px;">
+                                                            <div style="width: 220px; height: 220px; background: #f0f0f0; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 16px;">
                                                                 No Image
                                                             </div>
                                                         <?php endif; ?>
