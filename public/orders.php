@@ -72,6 +72,37 @@ if (!empty($searchTerm)) {
                         <p>No orders found for "<?php echo htmlspecialchars($searchTerm); ?>"</p>
                     </div>
                 <?php elseif (!empty($orders)): ?>
+                    <?php 
+                    // Check if any orders have tickets
+                    $ordersWithTickets = [];
+                    foreach ($orders as $order) {
+                        if (!empty($order['tickets'])) {
+                            $ordersWithTickets[] = $order['id'];
+                        }
+                    }
+                    ?>
+                    <?php if (!empty($ordersWithTickets) && !empty($searchTerm)): ?>
+                    <div class="ticket-alert" style="background: #f8d7da; border: 2px solid #dc3545; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <div style="font-size: 18px; font-weight: 600; color: #721c24;">
+                            🚨 Alert: Order<?php echo count($ordersWithTickets) > 1 ? 's' : ''; ?> with Support Tickets Found!
+                        </div>
+                        <div style="margin-top: 10px; color: #721c24;">
+                            Order ID<?php echo count($ordersWithTickets) > 1 ? 's' : ''; ?>: 
+                            <strong><?php echo implode(', ', array_map(function($id) { return '#' . $id; }, $ordersWithTickets)); ?></strong>
+                            <?php echo count($ordersWithTickets) > 1 ? ' have' : ' has'; ?> active support tickets.
+                        </div>
+                    </div>
+                    <script>
+                        // Show JavaScript alert for orders with tickets
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const orderIds = <?php echo json_encode($ordersWithTickets); ?>;
+                            const message = 'ALERT: Order' + (orderIds.length > 1 ? 's' : '') + ' with Support Tickets!\n\n' +
+                                          'Order ID' + (orderIds.length > 1 ? 's' : '') + ': ' + orderIds.map(id => '#' + id).join(', ') + '\n\n' +
+                                          'These order' + (orderIds.length > 1 ? 's have' : ' has') + ' active support tickets that need attention.';
+                            alert(message);
+                        });
+                    </script>
+                    <?php endif; ?>
                     <div class="orders-list">
                         <?php foreach ($orders as $order): ?>
                             <?php 
@@ -123,69 +154,95 @@ if (!empty($searchTerm)) {
                                     <div class="order-full-details" id="details-<?php echo $order['id']; ?>">
                                         
                                         <?php if (!empty($order['items'])): ?>
+                                            <!-- Shipping & Tracking Info (Once for entire order) -->
+                                            <div class="order-shipping-info" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                    <div>
+                                                        <div style="font-size: 16px; opacity: 0.9; margin-bottom: 5px;">🚚 Shipping Method</div>
+                                                        <div style="font-size: 28px; font-weight: 700;">
+                                                            <?php echo htmlspecialchars($order['shipping_service'] ?? 'USPS'); ?>
+                                                        </div>
+                                                    </div>
+                                                    <?php if (!empty($order['tracking_id'])): ?>
+                                                    <div style="text-align: right;">
+                                                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Tracking Number</div>
+                                                        <div style="font-size: 16px; font-weight: 600; font-family: monospace;">
+                                                            <?php echo htmlspecialchars($order['tracking_id']); ?>
+                                                        </div>
+                                                    </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Support Tickets Info (if any) -->
+                                            <?php if (!empty($order['tickets'])): ?>
+                                            <div class="order-tickets-info" style="background: #f8d7da; border: 2px solid #dc3545; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                                                <div style="font-size: 16px; font-weight: 600; color: #721c24; margin-bottom: 10px;">
+                                                    🚨 Support Tickets
+                                                </div>
+                                                <?php foreach ($order['tickets'] as $ticket): ?>
+                                                <div style="padding: 8px 0; border-bottom: 1px solid #f5c6cb;">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <div>
+                                                            <span style="color: #721c24; font-weight: 600;">#<?php echo $ticket['id']; ?></span>
+                                                            <span style="color: #721c24; margin-left: 10px;">-</span>
+                                                            <span style="color: #721c24; margin-left: 10px;"><?php echo htmlspecialchars($ticket['subject'] ?? 'No subject'); ?></span>
+                                                        </div>
+                                                        <span style="font-size: 12px; padding: 2px 8px; background: <?php echo $ticket['status'] == 1 ? '#28a745' : '#dc3545'; ?>; color: white; border-radius: 4px;">
+                                                            <?php echo $ticket['status'] == 1 ? 'Resolved' : 'Open'; ?>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <?php endif; ?>
+                                            
                                             <!-- Item Information (Main Focus) -->
                                             <div class="items-section-main">
                                                 <h4 class="items-title">📦 Item Information</h4>
-                                                <div class="items-table-container">
-                                                    <table class="items-table">
-                                                        <thead>
-                                                            <tr>
-                                                                <th class="th-mockup">Mockup</th>
-                                                                <th class="th-product">Product Name</th>
-                                                                <th class="th-variant">Variant ID</th>
-                                                                <th class="th-style">Style</th>
-                                                                <th class="th-color">Color</th>
-                                                                <th class="th-size">Size</th>
-                                                                <th class="th-qty">Qty</th>
-                                                                <th class="th-price">Price</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <?php foreach ($order['items'] as $item): ?>
-                                                                <tr class="item-row">
-                                                                    <td class="td-mockup">
-                                                                        <?php if (!empty($item['mockup'])): ?>
-                                                                            <div class="mockup-wrapper">
-                                                                                <img src="<?php echo htmlspecialchars($item['mockup']); ?>" 
-                                                                                     class="mockup-img"
-                                                                                     alt="Product"
-                                                                                     onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=no-img>No Image</span>';">
-                                                                            </div>
-                                                                        <?php else: ?>
-                                                                            <span class="no-img">No Image</span>
-                                                                        <?php endif; ?>
-                                                                    </td>
-                                                                    <td class="td-product">
-                                                                        <div class="product-name"><?php echo htmlspecialchars($item['product_name'] ?? 'N/A'); ?></div>
-                                                                        <?php if (!empty($item['sku'])): ?>
-                                                                            <div class="product-sku">SKU: <?php echo htmlspecialchars($item['sku']); ?></div>
-                                                                        <?php endif; ?>
-                                                                    </td>
-                                                                    <td class="td-variant"><?php echo htmlspecialchars($item['variant_id'] ?? 'N/A'); ?></td>
-                                                                    <td class="td-style"><?php echo htmlspecialchars($item['style'] ?? '-'); ?></td>
-                                                                    <td class="td-color"><?php echo htmlspecialchars($item['color'] ?? '-'); ?></td>
-                                                                    <td class="td-size"><?php echo htmlspecialchars($item['size'] ?? '-'); ?></td>
-                                                                    <td class="td-qty"><?php echo $item['quantity'] ?? 1; ?></td>
-                                                                    <td class="td-price">$<?php echo number_format($item['price'] ?? 0, 2); ?></td>
-                                                                </tr>
-                                                            <?php endforeach; ?>
-                                                        </tbody>
-                                                        <tfoot>
-                                                            <tr class="total-row">
-                                                                <td colspan="7" class="text-right">Print Cost:</td>
-                                                                <td class="order-total">$<?php echo number_format($order['print_cost'] ?? 0, 2); ?></td>
-                                                            </tr>
-                                                            <tr class="total-row">
-                                                                <td colspan="7" class="text-right">Shipping Cost:</td>
-                                                                <td class="order-total">$<?php echo number_format($order['shipping_cost'] ?? 0, 2); ?></td>
-                                                            </tr>
-                                                            <tr class="total-row">
-                                                                <td colspan="7" class="text-right">Total Cost:</td>
-                                                                <td class="order-total"><strong>$<?php echo number_format($order['total_cost'] ?? 0, 2); ?></strong></td>
-                                                            </tr>
-                                                        </tfoot>
-                                                    </table>
+                                                <?php foreach ($order['items'] as $item): ?>
+                                                <div class="item-card" style="display: flex; gap: 25px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; margin-bottom: 15px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                                    <!-- Mockup Image - Larger -->
+                                                    <div class="item-mockup" style="flex-shrink: 0;">
+                                                        <?php if (!empty($item['mockup'])): ?>
+                                                            <img src="<?php echo htmlspecialchars($item['mockup']); ?>" 
+                                                                 style="width: 160px; height: 160px; object-fit: cover; border-radius: 10px; border: 2px solid #e0e0e0; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
+                                                                 alt="Product Mockup"
+                                                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'width: 160px; height: 160px; background: #f0f0f0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px;\'>No Image</div>';">
+                                                        <?php else: ?>
+                                                            <div style="width: 160px; height: 160px; background: #f0f0f0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px;">
+                                                                No Image
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    
+                                                    <!-- Item Details -->
+                                                    <div class="item-details" style="flex-grow: 1;">
+                                                        <div class="product-name" style="font-size: 18px; font-weight: 600; color: #2c3e50; margin-bottom: 10px; line-height: 1.4;">
+                                                            <?php echo htmlspecialchars($item['product_name'] ?? 'N/A'); ?>
+                                                        </div>
+                                                        <?php if (!empty($item['sku'])): ?>
+                                                        <div class="product-sku" style="font-size: 14px; color: #6c757d; margin-bottom: 15px;">
+                                                            SKU: <?php echo htmlspecialchars($item['sku']); ?>
+                                                        </div>
+                                                        <?php endif; ?>
+                                                        <div style="display: flex; gap: 40px; margin-top: 15px;">
+                                                            <div>
+                                                                <span style="color: #6c757d; font-size: 14px;">Size:</span>
+                                                                <span style="font-weight: 600; font-size: 16px; margin-left: 8px; color: #2c3e50;">
+                                                                    <?php echo htmlspecialchars($item['size'] ?? '-'); ?>
+                                                                </span>
+                                                            </div>
+                                                            <div>
+                                                                <span style="color: #6c757d; font-size: 14px;">Quantity:</span>
+                                                                <span style="font-weight: 700; font-size: 24px; margin-left: 10px; color: #dc3545; display: inline-block; background: #ffe8ea; padding: 2px 12px; border-radius: 6px;">
+                                                                    <?php echo $item['quantity'] ?? 1; ?>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
+                                                <?php endforeach; ?>
                                             </div>
                                         <?php endif; ?>
                                         
@@ -207,22 +264,6 @@ if (!empty($searchTerm)) {
                                                 <div class="info-item">
                                                     <span class="info-icon">📞</span>
                                                     <span><?php echo htmlspecialchars($order['phone']); ?></span>
-                                                </div>
-                                                <?php endif; ?>
-                                            </div>
-                                            <div class="info-group">
-                                                <div class="info-item">
-                                                    <span class="info-icon">💰</span>
-                                                    <span>Total: <strong>$<?php echo number_format($order['total_cost'] ?? 0, 2); ?></strong></span>
-                                                </div>
-                                                <div class="info-item">
-                                                    <span class="info-icon">🚚</span>
-                                                    <span><?php echo htmlspecialchars($order['shipping_service'] ?? 'Standard'); ?></span>
-                                                </div>
-                                                <?php if (!empty($order['tracking_id'])): ?>
-                                                <div class="info-item">
-                                                    <span class="info-icon">📦</span>
-                                                    <span><?php echo htmlspecialchars($order['tracking_id']); ?></span>
                                                 </div>
                                                 <?php endif; ?>
                                             </div>

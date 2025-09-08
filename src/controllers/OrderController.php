@@ -92,8 +92,9 @@ class OrderController {
             $stmt->execute($params);
             $orders = $stmt->fetchAll();
             
-            // Get items for each order
+            // Get items and tickets for each order
             foreach ($orders as &$order) {
+                // Get items
                 $itemSql = "SELECT oi.*, 
                            pv.style, pv.color, pv.size
                            FROM order_items oi
@@ -102,6 +103,12 @@ class OrderController {
                 $itemStmt = $this->db->prepare($itemSql);
                 $itemStmt->execute([$order['id']]);
                 $order['items'] = $itemStmt->fetchAll();
+                
+                // Get support tickets
+                $ticketSql = "SELECT id, subject, status FROM supports WHERE order_id = ? ORDER BY created_at DESC";
+                $ticketStmt = $this->db->prepare($ticketSql);
+                $ticketStmt->execute([$order['id']]);
+                $order['tickets'] = $ticketStmt->fetchAll();
             }
             
             return $orders;
@@ -129,6 +136,7 @@ class OrderController {
             $order = $stmt->fetch();
             
             if ($order) {
+                // Get items
                 $itemSql = "SELECT oi.*, 
                            pv.style, pv.color, pv.size
                            FROM order_items oi
@@ -137,6 +145,12 @@ class OrderController {
                 $itemStmt = $this->db->prepare($itemSql);
                 $itemStmt->execute([$orderId]);
                 $order['items'] = $itemStmt->fetchAll();
+                
+                // Get support tickets
+                $ticketSql = "SELECT id, subject, status FROM supports WHERE order_id = ? ORDER BY created_at DESC";
+                $ticketStmt = $this->db->prepare($ticketSql);
+                $ticketStmt->execute([$orderId]);
+                $order['tickets'] = $ticketStmt->fetchAll();
             }
             
             return $order;
@@ -189,8 +203,9 @@ class OrderController {
             
             $orders = $stmt->fetchAll();
             
-            // Get items for each order
+            // Get items and tickets for each order
             foreach ($orders as &$order) {
+                // Get items
                 $itemSql = "SELECT oi.*, 
                            pv.style, pv.color, pv.size
                            FROM order_items oi
@@ -199,6 +214,12 @@ class OrderController {
                 $itemStmt = $this->db->prepare($itemSql);
                 $itemStmt->execute([$order['id']]);
                 $order['items'] = $itemStmt->fetchAll();
+                
+                // Get support tickets
+                $ticketSql = "SELECT id, subject, status FROM supports WHERE order_id = ? ORDER BY created_at DESC";
+                $ticketStmt = $this->db->prepare($ticketSql);
+                $ticketStmt->execute([$order['id']]);
+                $order['tickets'] = $ticketStmt->fetchAll();
             }
             
             return $orders;
